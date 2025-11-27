@@ -22,10 +22,10 @@ public class IntersectionManager : MonoBehaviour
 
         hasIntersection = LineIntersection2D(A, B, C, D, out intersectionPoint);
 
-        if (hasIntersection)
-        {
-            Debug.Log("交点 → " + intersectionPoint);
-        }
+        // if (hasIntersection)
+        // {
+        //     Debug.Log("交点 → " + intersectionPoint);
+        // }
     }
 
     bool LineIntersection2D(Vector3 A, Vector3 B, Vector3 C, Vector3 D, out Vector3 I)

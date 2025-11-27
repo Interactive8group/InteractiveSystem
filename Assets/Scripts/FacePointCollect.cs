@@ -27,4 +27,19 @@ public class FacePointCollect : MonoBehaviour
     {
         // 必要に応じて子の位置を確認したり処理を追加
     }
+
+    /// <summary>
+    /// 全てのポイントの重心（平均位置）を返す
+    /// </summary>
+    public Vector3 GetFaceCenter()
+    {
+        if (childList.Count == 0) return transform.position;
+
+        Vector3 sum = Vector3.zero;
+        foreach (GameObject point in childList)
+        {
+            sum += point.transform.position;
+        }
+        return sum / childList.Count;
+    }
 }

@@ -25,11 +25,9 @@ public class Player : MonoBehaviour
 
         if (FacePointCollect.instance != null && FacePointCollect.instance.collectFinish)
         {
-            if (FacePointCollect.instance.childList.Count > 4)
-            {
-                transform.position = FacePointCollect.instance.childList[4].transform.position;
-                Debug.Log("transform.position←" + FacePointCollect.instance.childList[4].transform.position);
-            }
+
+            transform.position = FacePointCollect.instance.GetFaceCenter();
+            Debug.Log("transform.position←" + FacePointCollect.instance.GetFaceCenter());
         }
 
         // // 現在の位置を取得

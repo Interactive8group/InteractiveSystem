@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7477175687846711450}
   - component: {fileID: 5817503713440874067}
   m_Layer: 0
-  m_Name: FaceLandmarkListWithIris Annotation
+  m_Name: FaceLandmarkListWithIris Annotation Original
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -221,6 +221,10 @@ PrefabInstance:
       propertyPath: _radius
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 2452028741229710435, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
+      propertyPath: _annotationPrefab
+      value: 
+      objectReference: {fileID: 5105739270100195971, guid: 9fd242b07377b3a4d88f034c2d0520d4, type: 3}
     - target: {fileID: 7273100862690186830, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
       propertyPath: m_RootOrder
       value: 0
@@ -269,13 +273,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: FaceLandmarkList Annotation
       objectReference: {fileID: 0}
+    - target: {fileID: 8266140556773805629, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
+      propertyPath: _annotationPrefab
+      value: 
+      objectReference: {fileID: 4824063073641375834, guid: a888da49933a6724d9312047f3dc6e6f, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2452028741229710237, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7139291152161329383}
+      addedObject: {fileID: 547169137815477608}
   m_SourcePrefab: {fileID: 100100000, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
 --- !u!114 &1949188687776883120 stripped
 MonoBehaviour:
@@ -298,7 +306,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2452028741229710237, guid: 16074ce928b0558829296ab0d9ccadf3, type: 3}
   m_PrefabInstance: {fileID: 5705557952729350461}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7139291152161329383
+--- !u!114 &547169137815477608
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -310,8 +318,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dbfd8b118c9ee7a44b6b2d69f791c3b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  childList: []
-  collectFinish: 0
 --- !u!1001 &8572875197927310663
 PrefabInstance:
   m_ObjectHideFlags: 0

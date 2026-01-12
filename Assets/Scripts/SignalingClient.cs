@@ -81,13 +81,14 @@ public class SignalingClient : MonoBehaviour
 
     public void Send(string message)
     {
+        Debug.Log("Send signaling >>> " + message);
+
         if (!isOpen)
         {
             Debug.LogWarning("WebSocket not open yet. Skip Send.");
             return;
         }
 
-        Debug.Log("Send signaling: " + message);
         ws.Send(message);
     }
 

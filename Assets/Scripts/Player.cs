@@ -1,53 +1,131 @@
 using System.Collections;
+using Photon.Pun;
 using UnityEngine;
 
-public class Player : MonoBehaviour
+public class Player : MonoBehaviourPun
 {
-    [SerializeField] float speed = 0.01f;
-    [Header("オブジェクトの位置の微調整"), SerializeField] Vector3 pos_config;
-    [SerializeField] float moveLimit_up = 0, moveLimit_bottom = 0, moveLimit_left = 0, moveLimit_right = 0;
-    [SerializeField] GameObject fukidasi;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
+    [Header("Shoot 2D")]
+    [SerializeField] GameObject bulletPrefab;
+    [SerializeField] Transform bulletSpawnPoint;
+    [SerializeField] float bulletSpeed = 8f;
+    [SerializeField] float shakeThreshold = 0.025f;
+    [SerializeField] float shootCooldown = 0.3f;
 
-    }
+    Vector3 prevFacePos;
+    bool canShoot = true;
+
+    [Header("Move")]
+    [SerializeField] float speed = 0.01f;
+    [SerializeField] Vector3 pos_config;
+
+    [Header("UI")]
+    [SerializeField] GameObject fukidasi;
 
     void Update()
     {
+        // ★ 自分のPlayerだけ処理
+        if (!photonView.IsMine) return;
+
         PlayerMove();
+        FaceShakeShoot2D();
     }
 
     void PlayerMove()
     {
-        // if (IntersectionManager.instance.hasIntersection)
-        // {
-        //     transform.position = (IntersectionManager.instance.intersectionPoint + pos_config) * speed;
-        // }
-
-        if (FacePointCollect.instance != null && FacePointCollect.instance.collectFinish)
+        if (FacePointCollect.instance != null &&
+            FacePointCollect.instance.collectFinish)
         {
-
             transform.position = FacePointCollect.instance.GetFaceCenter();
-            //Debug.Log("transform.position←" + FacePointCollect.instance.GetFaceCenter());
         }
-
-        // // 現在の位置を取得
-        // Vector3 pos = transform.position;
-
-        // // Y方向を制限
-        // pos.y = Mathf.Clamp(pos.y, moveLimit_bottom, moveLimit_up);
-
-        // // X方向を制限
-        // pos.x = Mathf.Clamp(pos.x, moveLimit_left, moveLimit_right);
-
-        // // 修正した位置を再代入
-        // transform.position = pos;
     }
 
-    void OnCollisionEnter(Collision collision)
+    // ======================
+    // 顔振り → 発射
+    // ======================
+    void FaceShakeShoot2D()
     {
-        if (collision.gameObject.tag == "Bullet")
+        // ★ Photon所有チェック
+        if (!photonView.IsMine) return;
+
+        // ★ FacePointCollect 存在チェック
+        if (FacePointCollect.instance == null) return;
+        if (!FacePointCollect.instance.collectFinish) return;
+
+        if (!canShoot) return;
+
+        Vector3 currentFacePos = FacePointCollect.instance.GetFaceCenter();
+
+        // 初回対策
+        if (prevFacePos == Vector3.zero)
+        {
+            prevFacePos = currentFacePos;
+            return;
+        }
+
+        Vector3 delta = currentFacePos - prevFacePos;
+
+        // ミラー補正
+        delta.x *= -1;
+
+        Vector2 shootDir = Vector2.zero;
+
+        if (Mathf.Abs(delta.x) > shakeThreshold)
+        {
+            shootDir = delta.x > 0 ? Vector2.right : Vector2.left;
+        }
+        else if (Mathf.Abs(delta.y) > shakeThreshold)
+        {
+            shootDir = delta.y > 0 ? Vector2.up : Vector2.down;
+        }
+
+        if (shootDir != Vector2.zero)
+        {
+            Shoot2D(shootDir);
+            canShoot = false;
+            Invoke(nameof(ResetShoot), shootCooldown);
+        }
+
+        prevFacePos = currentFacePos;
+    }
+
+    void ResetShoot()
+    {
+        canShoot = true;
+    }
+
+    // ======================
+    // ネットワーク発射
+    // ======================
+    void Shoot2D(Vector2 dir)
+    {
+        if (!PhotonNetwork.IsConnectedAndReady) return;
+        if (!PhotonNetwork.InRoom) return;
+
+        photonView.RPC(
+            nameof(RPC_Shoot),
+            RpcTarget.All,
+            dir,
+            bulletSpawnPoint.position
+        );
+    }
+
+
+    [PunRPC]
+    void RPC_Shoot(Vector2 dir, Vector3 pos)
+    {
+        GameObject bullet = Instantiate(bulletPrefab, pos, Quaternion.identity);
+        Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
+        rb.linearVelocity = dir * bulletSpeed;
+    }
+
+    // ======================
+    // 被弾判定（2D）
+    // ======================
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!photonView.IsMine) return;
+
+        if (collision.gameObject.CompareTag("Bullet"))
         {
             GameManager.instance.TextChange("いた～");
             ViewFukidashi();
@@ -57,12 +135,12 @@ public class Player : MonoBehaviour
     void ViewFukidashi()
     {
         fukidasi.SetActive(true);
-        StartCoroutine(HideAfter3Seconds(fukidasi));
+        StartCoroutine(HideAfter3Seconds());
     }
 
-    IEnumerator HideAfter3Seconds(GameObject gameObject)
+    IEnumerator HideAfter3Seconds()
     {
         yield return new WaitForSeconds(3f);
-        gameObject.SetActive(false); // 非表示にする
+        fukidasi.SetActive(false);
     }
 }

@@ -3,43 +3,59 @@ using UnityEngine;
 
 public class FacePointCollect : MonoBehaviour
 {
-    public List<GameObject> childList = new List<GameObject>();
     public static FacePointCollect instance;
+
+    public List<GameObject> childList = new List<GameObject>();
     public bool collectFinish = false;
 
-    private void Awake()
+    void Awake()
     {
-        instance = this;
+        // ★ シングルトン保証
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
     }
 
     void Start()
     {
-        // このGameObjectの直下の子をすべて取得
+        childList.Clear();
+
         foreach (Transform child in transform)
         {
-            childList.Add(child.gameObject);
+            // 非アクティブ除外（重要）
+            if (child.gameObject.activeInHierarchy)
+            {
+                childList.Add(child.gameObject);
+            }
         }
 
-        collectFinish = true;
+        collectFinish = childList.Count > 0;
     }
 
-    void Update()
-    {
-        // 必要に応じて子の位置を確認したり処理を追加
-    }
-
-    /// <summary>
-    /// 全てのポイントの重心（平均位置）を返す
-    /// </summary>
     public Vector3 GetFaceCenter()
     {
-        if (childList.Count == 0) return transform.position;
+        if (!collectFinish || childList.Count == 0)
+            return transform.position;
 
         Vector3 sum = Vector3.zero;
+        int count = 0;
+
         foreach (GameObject point in childList)
         {
+            if (point == null) continue;
+
             sum += point.transform.position;
+            count++;
         }
-        return sum / childList.Count;
+
+        if (count == 0) return transform.position;
+
+        return sum / count;
     }
 }

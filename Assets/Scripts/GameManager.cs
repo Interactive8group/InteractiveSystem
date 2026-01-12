@@ -44,12 +44,12 @@ public class GameManager : MonoBehaviour
         else
             spawnPos = new Vector3(Random.Range(bottomLeft.x, topRight.x), bottomLeft.y - 1f, 80f);
 
-        // 弾を生成
-        GameObject newBullet = Instantiate(bulletPrefab, spawnPos, Quaternion.identity);
+        // // 弾を生成
+        // GameObject newBullet = Instantiate(bulletPrefab, spawnPos, Quaternion.identity);
 
-        // 画面中央をターゲットに設定
-        Vector3 targetPos = (bottomLeft + topRight) / 2f;
-        newBullet.GetComponent<Bullet>().SetTarget(targetPos);
+        // // 画面中央をターゲットに設定
+        // Vector3 targetPos = (bottomLeft + topRight) / 2f;
+        // newBullet.GetComponent<Bullet>().SetTarget(targetPos);
     }
 
     public void TextChange(string newText)

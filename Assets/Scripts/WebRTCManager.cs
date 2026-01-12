@@ -7,19 +7,20 @@ public class WebRTCManager : MonoBehaviour
     public static WebRTCManager instance;
 
     private RTCPeerConnection pc;
-    private VideoStreamTrack localTrack;
 
     void Awake()
     {
         instance = this;
+    }
+
+    IEnumerator Start()
+    {
+        Debug.Log("WebRTC Initialize");
+        //WebRTC.Initialize();
+
+        yield return null; // ★ 1フレーム待つ
 
         pc = new RTCPeerConnection();
-
-        // ★ 重要：video を Send/Recv する宣言
-        pc.AddTransceiver(TrackKind.Video, new RTCRtpTransceiverInit
-        {
-            direction = RTCRtpTransceiverDirection.SendRecv
-        });
 
         pc.OnIceCandidate = candidate =>
         {
@@ -50,8 +51,7 @@ public class WebRTCManager : MonoBehaviour
 
     public void SetLocalVideo(VideoStreamTrack track)
     {
-        Debug.Log("SetLocalVideo called");
-        localTrack = track;
+        Debug.Log("SetLocalVideo");
         pc.AddTrack(track);
     }
 
@@ -59,12 +59,6 @@ public class WebRTCManager : MonoBehaviour
     {
         var op = pc.CreateOffer();
         yield return op;
-
-        if (op.IsError)
-        {
-            Debug.LogError("CreateOffer Error");
-            yield break;
-        }
 
         var desc = op.Desc;
         yield return pc.SetLocalDescription(ref desc);
@@ -77,12 +71,6 @@ public class WebRTCManager : MonoBehaviour
         var op = pc.CreateAnswer();
         yield return op;
 
-        if (op.IsError)
-        {
-            Debug.LogError("CreateAnswer Error");
-            yield break;
-        }
-
         var desc = op.Desc;
         yield return pc.SetLocalDescription(ref desc);
 
@@ -94,18 +82,25 @@ public class WebRTCManager : MonoBehaviour
         var op = pc.SetRemoteDescription(ref desc);
         yield return op;
 
-        if (op.IsError)
-        {
-            Debug.LogError("SetRemoteDescription Error");
-        }
-        else
-        {
-            Debug.Log("SetRemoteDescription done");
-        }
+        Debug.Log("SetRemoteDescription done");
     }
 
     public void AddIceCandidate(RTCIceCandidate candidate)
     {
+        // RemoteDescription がまだ無い場合は弾く
+        if (string.IsNullOrEmpty(pc.RemoteDescription.sdp))
+        {
+            Debug.LogWarning("ICE before RemoteDescription → ignore");
+            return;
+        }
+
         pc.AddIceCandidate(candidate);
+    }
+
+    void OnDestroy()
+    {
+        pc?.Close();
+        pc?.Dispose();
+        //WebRTC.Dispose();
     }
 }

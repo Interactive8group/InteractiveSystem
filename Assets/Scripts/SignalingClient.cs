@@ -7,6 +7,8 @@ using Unity.WebRTC;
 public class SignalingClient : MonoBehaviour
 {
     [SerializeField] private bool isHost;
+    [SerializeField] private bool isOfferer = false;
+
     public static SignalingClient instance;
 
     private WebSocket ws;
@@ -22,7 +24,7 @@ public class SignalingClient : MonoBehaviour
 
     IEnumerator Start()
     {
-        ws = new WebSocket("ws://192.168.11.18:3000"); // ← サーバPCのIPにする
+        ws = new WebSocket("ws://192.168.11.18:3000");
 
         ws.OnOpen += (s, e) =>
         {
@@ -32,45 +34,35 @@ public class SignalingClient : MonoBehaviour
 
         ws.OnMessage += (s, e) =>
         {
-            Debug.Log("Receive signaling (raw): " + e.Data);
-
-            // ★ 絶対にここで WebRTC / Coroutine を触らない
             lock (messageQueue)
             {
                 messageQueue.Enqueue(e.Data);
             }
         };
 
-        ws.OnError += (s, e) =>
-        {
-            Debug.LogError("WebSocket Error: " + e.Message);
-        };
-
-        ws.OnClose += (s, e) =>
-        {
-            Debug.LogWarning("WebSocket Closed");
-            isOpen = false;
-        };
-
         ws.Connect();
 
-        // ★ WebSocket が Open になるまで待つ
         yield return new WaitUntil(() => isOpen);
 
-        if (isHost)
+        // ★ Offer を作るのは片方だけ
+        if (!isOfferer)
         {
-            Debug.Log("Create Offer");
-
-            yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
-            {
-                Send(JsonUtility.ToJson(new SignalingMessage
-                {
-                    type = "offer",
-                    sdp = offer.sdp
-                }));
-            });
+            Debug.Log("This peer waits for offer");
+            yield break;
         }
+
+        Debug.Log("Create Offer");
+
+        yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
+        {
+            Send(JsonUtility.ToJson(new SignalingMessage
+            {
+                type = "offer",
+                sdp = offer.sdp
+            }));
+        });
     }
+
 
     void Update()
     {

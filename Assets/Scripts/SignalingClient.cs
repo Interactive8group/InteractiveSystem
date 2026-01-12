@@ -6,6 +6,7 @@ using Unity.WebRTC;
 
 public class SignalingClient : MonoBehaviour
 {
+    [SerializeField] private bool isHost;
     public static SignalingClient instance;
 
     private WebSocket ws;
@@ -56,19 +57,19 @@ public class SignalingClient : MonoBehaviour
         // ★ WebSocket が Open になるまで待つ
         yield return new WaitUntil(() => isOpen);
 
-        Debug.Log("Create Offer");
-
-        // ★ Offer 作成
-        yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
+        if (isHost)
         {
-            Debug.Log("Send Offer");
+            Debug.Log("Create Offer");
 
-            Send(JsonUtility.ToJson(new SignalingMessage
+            yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
             {
-                type = "offer",
-                sdp = offer.sdp
-            }));
-        });
+                Send(JsonUtility.ToJson(new SignalingMessage
+                {
+                    type = "offer",
+                    sdp = offer.sdp
+                }));
+            });
+        }
     }
 
     void Update()

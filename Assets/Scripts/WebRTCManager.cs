@@ -46,6 +46,7 @@ public class WebRTCManager : MonoBehaviour
 
     public void SetLocalVideo(VideoStreamTrack track)
     {
+        Debug.Log("SetLocalVideo called");
         localTrack = track;
         pc.AddTrack(track);
     }

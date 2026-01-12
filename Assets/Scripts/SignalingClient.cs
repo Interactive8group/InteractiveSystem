@@ -1,6 +1,7 @@
 using UnityEngine;
 using WebSocketSharp;
 using System.Collections;
+using System.Collections.Generic;
 using Unity.WebRTC;
 
 public class SignalingClient : MonoBehaviour
@@ -10,6 +11,9 @@ public class SignalingClient : MonoBehaviour
     private WebSocket ws;
     private bool isOpen = false;
 
+    // ★ WebSocket スレッド → Unity メインスレッド受け渡し用
+    private readonly Queue<string> messageQueue = new Queue<string>();
+
     void Awake()
     {
         instance = this;
@@ -17,7 +21,7 @@ public class SignalingClient : MonoBehaviour
 
     IEnumerator Start()
     {
-        ws = new WebSocket("ws://192.168.11.18:3000"); // サーバPCのIP
+        ws = new WebSocket("ws://192.168.11.18:3000"); // ← サーバPCのIPにする
 
         ws.OnOpen += (s, e) =>
         {
@@ -27,8 +31,13 @@ public class SignalingClient : MonoBehaviour
 
         ws.OnMessage += (s, e) =>
         {
-            Debug.Log("Receive signaling: " + e.Data);
-            StartCoroutine(ProcessMessage(e.Data));
+            Debug.Log("Receive signaling (raw): " + e.Data);
+
+            // ★ 絶対にここで WebRTC / Coroutine を触らない
+            lock (messageQueue)
+            {
+                messageQueue.Enqueue(e.Data);
+            }
         };
 
         ws.OnError += (s, e) =>
@@ -44,11 +53,12 @@ public class SignalingClient : MonoBehaviour
 
         ws.Connect();
 
-        // ★ WebSocket が Open になるまで絶対に待つ
+        // ★ WebSocket が Open になるまで待つ
         yield return new WaitUntil(() => isOpen);
 
         Debug.Log("Create Offer");
 
+        // ★ Offer 作成
         yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
         {
             Debug.Log("Send Offer");
@@ -59,6 +69,21 @@ public class SignalingClient : MonoBehaviour
                 sdp = offer.sdp
             }));
         });
+    }
+
+    void Update()
+    {
+        // ★ Unity メインスレッドで安全に処理
+        if (messageQueue.Count > 0)
+        {
+            string msg;
+            lock (messageQueue)
+            {
+                msg = messageQueue.Dequeue();
+            }
+
+            StartCoroutine(ProcessMessage(msg));
+        }
     }
 
     public void Send(string message)
@@ -75,7 +100,24 @@ public class SignalingClient : MonoBehaviour
 
     IEnumerator ProcessMessage(string msg)
     {
-        var obj = JsonUtility.FromJson<SignalingMessage>(msg);
+        Debug.Log("ProcessMessage: " + msg);
+
+        SignalingMessage obj;
+        try
+        {
+            obj = JsonUtility.FromJson<SignalingMessage>(msg);
+        }
+        catch
+        {
+            Debug.LogError("Invalid JSON");
+            yield break;
+        }
+
+        if (obj == null || string.IsNullOrEmpty(obj.type))
+        {
+            Debug.LogWarning("Invalid signaling message");
+            yield break;
+        }
 
         if (obj.type == "offer")
         {

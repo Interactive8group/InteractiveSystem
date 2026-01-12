@@ -13,9 +13,13 @@ public class WebRTCManager : MonoBehaviour
     {
         instance = this;
 
-        // WebRTC.Initialize(); ← 既に別で呼んでいるなら不要
-
         pc = new RTCPeerConnection();
+
+        // ★ 重要：video を Send/Recv する宣言
+        pc.AddTransceiver(TrackKind.Video, new RTCRtpTransceiverInit
+        {
+            direction = RTCRtpTransceiverDirection.SendRecv
+        });
 
         pc.OnIceCandidate = candidate =>
         {

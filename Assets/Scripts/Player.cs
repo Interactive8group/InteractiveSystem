@@ -3,21 +3,16 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    [SerializeField] float speed = 0.01f;
-    [Header("オブジェクトの位置の微調整"), SerializeField] Vector3 pos_config;
-    [SerializeField] float moveLimit_up = 0, moveLimit_bottom = 0, moveLimit_left = 0, moveLimit_right = 0;
-    [SerializeField] GameObject fukidasi;
-
     [Header("無敵設定")]
-    [SerializeField] float invincibleTime = 2f;   // 無敵時間（秒）
-    [SerializeField] float blinkInterval = 0.2f;  // 点滅間隔
+    [SerializeField] float invincibleTime = 2f;
+    [SerializeField] float blinkInterval = 0.2f;
 
     private bool isInvincible = false;
-    private SpriteRenderer spriteRenderer;
+    private Renderer playerRenderer;
 
     void Start()
     {
-        spriteRenderer = GetComponent<SpriteRenderer>();
+        playerRenderer = GetComponent<Renderer>();
     }
 
     void Update()
@@ -32,21 +27,24 @@ public class Player : MonoBehaviour
     {
         if (FacePointCollect.instance != null && FacePointCollect.instance.collectFinish)
         {
-            transform.position = FacePointCollect.instance.GetFaceCenter();
+            Vector3 pos = FacePointCollect.instance.GetFaceCenter();
+            transform.position = new Vector3(pos.x, pos.y, transform.position.z);
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
+    void OnTriggerEnter(Collider other)
     {
-        if (collision.gameObject.CompareTag("Enemy"))
-        {
-            if (!isInvincible)
-            {
-                GameManager.instance.hart--;
-                Debug.Log("体力：" + GameManager.instance.hart);
+        if (isInvincible) return;
 
-                // 無敵時間＋点滅開始
-                StartCoroutine(BecomeInvincible());
+        if (other.CompareTag("Enemy") || other.CompareTag("EnemyBullet"))
+        {
+            GameManager.instance.hart--;
+            StartCoroutine(BecomeInvincible());
+
+            // 弾だけ消す
+            if (other.CompareTag("EnemyBullet"))
+            {
+                Destroy(other.gameObject);
             }
         }
     }
@@ -58,34 +56,12 @@ public class Player : MonoBehaviour
 
         while (elapsed < invincibleTime)
         {
-            spriteRenderer.enabled = !spriteRenderer.enabled; // 点滅
+            playerRenderer.enabled = !playerRenderer.enabled;
             yield return new WaitForSeconds(blinkInterval);
             elapsed += blinkInterval;
         }
 
-        spriteRenderer.enabled = true; // 元に戻す
+        playerRenderer.enabled = true;
         isInvincible = false;
-    }
-
-    // 吹き出しは従来のまま
-    void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.CompareTag("Bullet"))
-        {
-            GameManager.instance.TextChange("いた～");
-            ViewFukidashi();
-        }
-    }
-
-    void ViewFukidashi()
-    {
-        fukidasi.SetActive(true);
-        StartCoroutine(HideAfter3Seconds(fukidasi));
-    }
-
-    IEnumerator HideAfter3Seconds(GameObject obj)
-    {
-        yield return new WaitForSeconds(3f);
-        obj.SetActive(false);
     }
 }

@@ -2,49 +2,72 @@ using UnityEngine;
 
 public class FaceBulletShooter : MonoBehaviour
 {
-    public GameObject bulletPrefab;
-    public Transform spawnPoint;
-    public float speedThreshold = 0.5f;  // 閾値
-    public float fireCooldown = 0.3f;    // クールタイム
+    [Header("弾")]
+    [SerializeField] GameObject bulletPrefab;
+    [SerializeField] Transform spawnPoint;
 
-    private Vector3 lastFacePos;
-    private float cooldownTimer = 0f;
+    [Header("首振り感度（下振りのみ）")]
+    [SerializeField] float verticalMoveThreshold = 0.03f;
+    [SerializeField] float verticalSpeedThreshold = 0.8f;
+    [SerializeField] float fireCooldown = 0.4f;
+
+    [Header("弾速度")]
+    [SerializeField] float minBulletSpeed = 6f;
+    [SerializeField] float maxBulletSpeed = 14f;
+
+    private Vector3 lastFaceCenter;
+    private float cooldownTimer;
 
     void Start()
     {
-        lastFacePos = transform.position;
+        if (FacePointCollect.instance != null)
+        {
+            lastFaceCenter = FacePointCollect.instance.GetFaceCenter();
+        }
     }
 
     void Update()
     {
+        if (FacePointCollect.instance == null) return;
+        if (!FacePointCollect.instance.collectFinish) return;
+
         cooldownTimer += Time.deltaTime;
 
-        Vector3 facePos = transform.position;
-        Vector3 delta = facePos - lastFacePos;
+        Vector3 currentCenter = FacePointCollect.instance.GetFaceCenter();
+        Vector3 delta = currentCenter - lastFaceCenter;
 
-        // 縦方向の移動量
-        float verticalMovement = delta.y / Time.deltaTime;
+        float verticalMove = delta.y;
+        float verticalSpeed = delta.y / Time.deltaTime;
 
-        if (Mathf.Abs(verticalMovement) > speedThreshold && cooldownTimer >= fireCooldown)
+        // ★ 下振りだけ反応（マイナス方向）
+        if (verticalMove < -verticalMoveThreshold &&
+            verticalSpeed < -verticalSpeedThreshold &&
+            cooldownTimer >= fireCooldown)
         {
-            // 奥行き方向（カメラの前方向）に飛ばす
-            Vector3 shootDirection = Vector3.forward;  // ワールド前方向に固定
-            Shoot(shootDirection, Mathf.Abs(verticalMovement));
+            Fire(-verticalSpeed); // マイナスを正のパワーに
             cooldownTimer = 0f;
         }
 
-        lastFacePos = facePos;
+        lastFaceCenter = currentCenter;
     }
 
-    void Shoot(Vector3 direction, float velocity)
+    void Fire(float power)
     {
-        GameObject newBullet = Instantiate(bulletPrefab, spawnPoint.position, Quaternion.identity);
-        Bullet bullet = newBullet.GetComponent<Bullet>();
-        if (bullet != null)
+        GameObject bulletObj = Instantiate(
+            bulletPrefab,
+            spawnPoint.position,
+            Quaternion.identity
+        );
+
+        Bullet bulletScript = bulletObj.GetComponent<Bullet>();
+        if (bulletScript != null)
         {
-            bullet.SetDirection(direction);
-            bullet.speed = Mathf.Clamp(velocity * 2f, 5f, 15f);
+            bulletScript.SetDirection(Vector3.forward);
+            bulletScript.speed = Mathf.Clamp(
+                power * 1.5f,
+                minBulletSpeed,
+                maxBulletSpeed
+            );
         }
-        Debug.Log("弾発射！速度:" + velocity);
     }
 }

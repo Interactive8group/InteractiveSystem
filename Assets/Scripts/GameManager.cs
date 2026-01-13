@@ -4,17 +4,34 @@ using System.Collections;
 
 public class GameManager : MonoBehaviour
 {
+    [Header("UI")]
     [SerializeField] TextMeshProUGUI text;
     [SerializeField] GameObject _gameoverPanel;
-    public GameObject enemyPrefab;
 
+    [Header("Enemies")]
+    [SerializeField] GameObject enemyPrefab;      // 雑魚
+    [SerializeField] GameObject bossPrefab;       // ボス
+    [SerializeField] GameObject enemyBulletPrefab;
+
+    [Header("Spawn Position (Z)")]
+    [SerializeField] private float enemySpawnZ = 25f;
+    [SerializeField] private float bossSpawnZ = 35f;
+
+    [Header("Enemy Spawn Count")]
+    [SerializeField] private int spawnCountMin = 1; // 1回の出現で最低何体
+    [SerializeField] private int spawnCountMax = 3; // 1回の出現で最大何体
+
+    [Header("Game Settings")]
     public int hart = 3;
     public float spawnInterval = 1f;
-    private float timer = 0f;
+    [SerializeField] private int maxEnemies = 10;
 
     public static GameManager instance;
 
-    private bool isGameStarted = false; // ゲーム開始フラグ
+    private float timer = 0f;
+    private bool isGameStarted = false;
+    private int enemiesSpawned = 0;
+    private bool bossSpawned = false;
 
     void Awake()
     {
@@ -25,74 +42,117 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        if (!isGameStarted) return; // ゲーム開始前は何もしない
+        if (!isGameStarted) return;
 
         timer += Time.deltaTime;
+
         if (timer >= spawnInterval)
         {
-            SpawnEnemy();
+            if (enemiesSpawned < maxEnemies)
+            {
+                int spawnCount = Random.Range(spawnCountMin, spawnCountMax + 1);
+
+                for (int i = 0; i < spawnCount; i++)
+                {
+                    if (enemiesSpawned >= maxEnemies) break;
+
+                    SpawnEnemy();
+                    enemiesSpawned++;
+                }
+            }
+            else if (!bossSpawned)
+            {
+                SpawnBoss();
+                bossSpawned = true;
+            }
+
             timer = 0f;
         }
 
         if (hart <= 0)
         {
             _gameoverPanel.SetActive(true);
-            Time.timeScale = 0f; // ゲームを止める
+            Time.timeScale = 0f;
         }
     }
 
-    // 3秒カウントダウン
     IEnumerator StartCountdown()
     {
         float countdown = 3f;
+
         while (countdown > 0f)
         {
-            text.text = Mathf.Ceil(countdown).ToString(); // 3,2,1と表示
+            text.text = Mathf.Ceil(countdown).ToString();
             yield return new WaitForSeconds(1f);
             countdown -= 1f;
         }
 
-        text.text = "GO!"; // GO!を表示
+        text.text = "GO!";
         yield return new WaitForSeconds(1f);
-        text.text = ""; // テキストを消す
-        isGameStarted = true; // ゲーム開始
+        text.text = "";
+        isGameStarted = true;
     }
 
     void SpawnEnemy()
     {
-        Camera mainCam = Camera.main;
-        Vector3 bottomLeft = mainCam.ScreenToWorldPoint(new Vector3(0, 0, 10f));
-        Vector3 topRight = mainCam.ScreenToWorldPoint(new Vector3(Screen.width, Screen.height, 10f));
+        Camera cam = Camera.main;
+        GameObject player = GameObject.FindWithTag("Player");
 
-        Vector3 spawnPos = Vector3.zero;
-        float side = Random.value;
+        float targetZ = player != null ? player.transform.position.z : 0f;
 
-        if (side < 0.25f) // 左
-            spawnPos = new Vector3(bottomLeft.x - 1f, Random.Range(bottomLeft.y, topRight.y), 0f);
-        else if (side < 0.5f) // 右
-            spawnPos = new Vector3(topRight.x + 1f, Random.Range(bottomLeft.y, topRight.y), 0f);
-        else if (side < 0.75f) // 上
-            spawnPos = new Vector3(Random.Range(bottomLeft.x, topRight.x), topRight.y + 1f, 0f);
-        else // 下
-            spawnPos = new Vector3(Random.Range(bottomLeft.x, topRight.x), bottomLeft.y - 1f, 0f);
-
-        GameObject newEnemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
-
-        Vector3 targetPos = new Vector3(
-            Random.Range(bottomLeft.x, topRight.x),
-            Random.Range(bottomLeft.y, topRight.y),
-            0f
+        Vector3 bl = cam.ScreenToWorldPoint(
+            new Vector3(0, 0, cam.nearClipPlane)
+        );
+        Vector3 tr = cam.ScreenToWorldPoint(
+            new Vector3(Screen.width, Screen.height, cam.nearClipPlane)
         );
 
-        Enemy enemyScript = newEnemy.GetComponent<Enemy>();
-        if (enemyScript != null)
+        // ★ 出現位置（xyランダム）
+        Vector3 spawnPos = new Vector3(
+            Random.Range(bl.x, tr.x),
+            Random.Range(bl.y, tr.y),
+            enemySpawnZ
+        );
+
+        // ★ 移動先もランダム
+        Vector3 targetPos = new Vector3(
+            Random.Range(bl.x, tr.x),
+            Random.Range(bl.y, tr.y),
+            targetZ
+        );
+
+        GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
+
+        Enemy e = enemy.GetComponent<Enemy>();
+        if (e != null)
         {
-            enemyScript.SetDirection(targetPos);
+            e.SetDirection(targetPos);
         }
+    }
+
+    void SpawnBoss()
+    {
+        Camera cam = Camera.main;
+
+        Vector3 center = cam.ScreenToWorldPoint(
+            new Vector3(Screen.width / 2, Screen.height / 2, bossSpawnZ)
+        );
+
+        Instantiate(bossPrefab, center, Quaternion.identity);
+    }
+
+    // ★ ボス撃破時に呼ぶ
+    public void GameClear()
+    {
+        text.text = "CLEAR!";
+        Time.timeScale = 0f;
     }
 
     public void TextChange(string newText)
     {
-        text.text = newText;
+        if (text != null)
+        {
+            text.text = newText;
+        }
     }
 }

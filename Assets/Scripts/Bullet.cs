@@ -2,28 +2,32 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 5f;           // 弾の速度
-    private Vector3 moveDirection;     // 弾の移動方向
+    public float speed = 10f;
+    public float destroyZ = -6f; // ★ プレイヤーより少し手前
+
+    private Vector3 direction;
 
     public void SetDirection(Vector3 dir)
     {
-        moveDirection = dir.normalized;
+        direction = dir.normalized;
     }
 
     void Update()
     {
-        transform.position += moveDirection * speed * Time.deltaTime;
+        transform.position += direction * speed * Time.deltaTime;
 
-        // 画面外に出たら消す
-        if (IsOutOfScreen())
+        // ★ Zを取りすぎたら消す
+        if (transform.position.z <= destroyZ)
         {
             Destroy(gameObject);
         }
     }
 
-    bool IsOutOfScreen()
+    void OnTriggerEnter(Collider other)
     {
-        Vector3 vp = Camera.main.WorldToViewportPoint(transform.position);
-        return vp.x < -0.1f || vp.x > 1.1f || vp.y < -0.1f || vp.y > 1.1f;
+        if (other.CompareTag("Player"))
+        {
+            Destroy(gameObject);
+        }
     }
 }

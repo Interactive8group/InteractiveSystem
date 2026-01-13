@@ -2,32 +2,28 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 5f;
-    private Vector3 target;
+    public float speed = 5f;           // 弾の速度
+    private Vector3 moveDirection;     // 弾の移動方向
 
-    /// <summary>
-    /// 画面内のターゲット位置をセット（Zは弾と同じ）
-    /// </summary>
-    public void SetTarget(Vector3 targetPos)
+    public void SetDirection(Vector3 dir)
     {
-        // Zは現在の弾のZ座標を使う
-        target = new Vector3(targetPos.x, targetPos.y, transform.position.z);
+        moveDirection = dir.normalized;
     }
 
     void Update()
     {
-        // ターゲット方向に移動（XYだけ）
-        Vector3 dir = (target - transform.position).normalized;
-        dir.z = 0f; // 念のためZ方向は動かさない
-        transform.position += dir * speed * Time.deltaTime;
-    }
+        transform.position += moveDirection * speed * Time.deltaTime;
 
-    void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.tag == "Player")
+        // 画面外に出たら消す
+        if (IsOutOfScreen())
         {
-            Debug.Log("被弾しました");
             Destroy(gameObject);
         }
+    }
+
+    bool IsOutOfScreen()
+    {
+        Vector3 vp = Camera.main.WorldToViewportPoint(transform.position);
+        return vp.x < -0.1f || vp.x > 1.1f || vp.y < -0.1f || vp.y > 1.1f;
     }
 }

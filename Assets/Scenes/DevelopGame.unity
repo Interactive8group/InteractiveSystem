@@ -1986,7 +1986,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1340095190}
   - component: {fileID: 1340095189}
-  - component: {fileID: 1340095188}
   - component: {fileID: 1340095191}
   m_Layer: 0
   m_Name: NetworkManagers
@@ -1995,18 +1994,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1340095188
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1340095187}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4da17af187236fd4fa55bc22fc4f4c8b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1340095189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2048,6 +2035,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1488eeb2daa95e14d84d951bf6ea1bd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isHost: 1
+  isOfferer: 1
 --- !u!1 &1842895460
 GameObject:
   m_ObjectHideFlags: 0

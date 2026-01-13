@@ -19,6 +19,7 @@ public class SignalingClient : MonoBehaviour
 
     void Awake()
     {
+        Debug.Log("SignalingClient Awake: " + gameObject.name);
         instance = this;
     }
 
@@ -44,21 +45,13 @@ public class SignalingClient : MonoBehaviour
 
         yield return new WaitUntil(() => isOpen);
 
-        // ★ Offer を作るのは片方だけ
-        if (!isOfferer)
+        yield return WebRTCManager.instance.CreateAnswerCoroutine(answer =>
         {
-            Debug.Log("This peer waits for offer");
-            yield break;
-        }
-
-        Debug.Log("Create Offer");
-
-        yield return WebRTCManager.instance.CreateOfferCoroutine(offer =>
-        {
+            Debug.Log("Send Answer (WebSocket is open)");
             Send(JsonUtility.ToJson(new SignalingMessage
             {
-                type = "offer",
-                sdp = offer.sdp
+                type = "answer",
+                sdp = answer.sdp
             }));
         });
     }
@@ -66,26 +59,29 @@ public class SignalingClient : MonoBehaviour
 
     void Update()
     {
-        // ★ Unity メインスレッドで安全に処理
         if (messageQueue.Count > 0)
         {
+            Debug.Log("MessageQueue Count: " + messageQueue.Count);
+
             string msg;
             lock (messageQueue)
             {
                 msg = messageQueue.Dequeue();
             }
 
+            Debug.Log("Dequeued: " + msg);
             StartCoroutine(ProcessMessage(msg));
         }
     }
 
+
     public void Send(string message)
     {
-        Debug.Log("Send signaling >>> " + message);
+        Debug.Log($"[WS SEND] isOpen={isOpen} msg={message}");
 
         if (!isOpen)
         {
-            Debug.LogWarning("WebSocket not open yet. Skip Send.");
+            Debug.LogError("WebSocket not open. SEND ABORTED");
             return;
         }
 

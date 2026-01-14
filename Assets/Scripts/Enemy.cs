@@ -53,7 +53,7 @@ public class Enemy : MonoBehaviour
         {
             GameManager.instance.OnEnemyDead();
         }
-
+        SoundManager.Instance.PlaySE(1);
         Destroy(gameObject);
     }
 }

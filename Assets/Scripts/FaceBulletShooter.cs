@@ -56,13 +56,13 @@ public class FaceBulletShooter : MonoBehaviour
         GameObject bulletObj = Instantiate(
             bulletPrefab,
             spawnPoint.position,
-            Quaternion.identity
+            Quaternion.Euler(0, 90, 0) // Y軸90°回転で見た目だけ回転
         );
 
         Bullet bulletScript = bulletObj.GetComponent<Bullet>();
         if (bulletScript != null)
         {
-            bulletScript.SetDirection(Vector3.forward);
+            bulletScript.SetDirection(Vector3.forward); // 弾の進む方向は変えない
             bulletScript.speed = Mathf.Clamp(
                 power * 1.5f,
                 minBulletSpeed,
@@ -72,4 +72,5 @@ public class FaceBulletShooter : MonoBehaviour
 
         SoundManager.Instance.PlaySE(0);
     }
+
 }

@@ -20,6 +20,10 @@ public class Boss : MonoBehaviour
     [SerializeField] private float flashInterval = 0.1f;
     [SerializeField] private int flashCount = 6;
 
+    [Header("Death Settings")]
+    [SerializeField] private GameObject deathEffectPrefab; // 倒れたときのエフェクト
+    [SerializeField] private float deathFallDuration = 1f; // 倒れる時間
+
     private Renderer _renderer;
     private Color _defaultColor;
     private bool isFlashing = false;
@@ -86,7 +90,7 @@ public class Boss : MonoBehaviour
     }
 
     // --------------------
-    // ダメージ
+    // ダメージ判定
     // --------------------
     private void OnTriggerEnter(Collider other)
     {
@@ -94,6 +98,7 @@ public class Boss : MonoBehaviour
         {
             Destroy(other.gameObject);
             TakeDamage(1);
+            SoundManager.Instance.PlaySE(1); // ダメージSE
         }
     }
 
@@ -112,6 +117,9 @@ public class Boss : MonoBehaviour
         }
     }
 
+    // --------------------
+    // 点滅処理
+    // --------------------
     IEnumerator Flash()
     {
         isFlashing = true;
@@ -127,9 +135,45 @@ public class Boss : MonoBehaviour
         isFlashing = false;
     }
 
+    // --------------------
+    // 死亡処理
+    // --------------------
     void Die()
     {
+        // 移動や攻撃を止める
+        StopAllCoroutines();
+        StartCoroutine(DieCoroutine());
+    }
+
+    IEnumerator DieCoroutine()
+    {
+        // 1. ゲームクリア通知
         GameManager.instance.GameClear();
+
+        // 2. 倒れる演出
+        Vector3 startPos = transform.position;
+        Vector3 endPos = startPos + Vector3.down * 2f; // 下に2ユニット倒れる
+        float elapsed = 0f;
+
+        while (elapsed < deathFallDuration)
+        {
+            transform.position = Vector3.Lerp(startPos, endPos, elapsed / deathFallDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = endPos;
+
+        // 3. エフェクト生成
+        if (deathEffectPrefab != null)
+        {
+            Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);
+        }
+
+        // 4. 倒れる音
+        SoundManager.Instance.PlaySE(2); // 倒れるSE
+
+        // 5. ボス削除
         Destroy(gameObject);
     }
 }

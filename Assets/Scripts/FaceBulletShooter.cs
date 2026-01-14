@@ -15,14 +15,14 @@ public class FaceBulletShooter : MonoBehaviour
     [SerializeField] float minBulletSpeed = 6f;
     [SerializeField] float maxBulletSpeed = 14f;
 
-    private Vector3 lastFaceCenter;
+    private Vector2 lastFace01;
     private float cooldownTimer;
 
     void Start()
     {
         if (FacePointCollect.instance != null)
         {
-            lastFaceCenter = FacePointCollect.instance.GetFaceCenter();
+            lastFace01 = FacePointCollect.instance.GetFaceCenter01();
         }
     }
 
@@ -33,22 +33,22 @@ public class FaceBulletShooter : MonoBehaviour
 
         cooldownTimer += Time.deltaTime;
 
-        Vector3 currentCenter = FacePointCollect.instance.GetFaceCenter();
-        Vector3 delta = currentCenter - lastFaceCenter;
+        Vector2 current01 = FacePointCollect.instance.GetFaceCenter01();
+        Vector2 delta = current01 - lastFace01;
 
         float verticalMove = delta.y;
         float verticalSpeed = delta.y / Time.deltaTime;
 
-        // ★ 下振りだけ反応（マイナス方向）
+        // ★ 下振りのみ
         if (verticalMove < -verticalMoveThreshold &&
             verticalSpeed < -verticalSpeedThreshold &&
             cooldownTimer >= fireCooldown)
         {
-            Fire(-verticalSpeed); // マイナスを正のパワーに
+            Fire(-verticalSpeed);
             cooldownTimer = 0f;
         }
 
-        lastFaceCenter = currentCenter;
+        lastFace01 = current01;
     }
 
     void Fire(float power)
@@ -69,5 +69,7 @@ public class FaceBulletShooter : MonoBehaviour
                 maxBulletSpeed
             );
         }
+
+        SoundManager.Instance.PlaySE(0);
     }
 }

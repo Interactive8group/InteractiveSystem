@@ -25,6 +25,12 @@ public class GameManager : MonoBehaviour
     public int hart = 3;
     public float spawnInterval = 1f;
     [SerializeField] private int maxEnemies = 10;
+    [Header("Enemy Spawn Area (Viewport)")]
+    [SerializeField, Range(0f, 1f)] private float spawnMinX = 0.1f;
+    [SerializeField, Range(0f, 1f)] private float spawnMaxX = 0.9f;
+    [SerializeField, Range(0f, 1f)] private float spawnMinY = 0.1f;
+    [SerializeField, Range(0f, 1f)] private float spawnMaxY = 0.9f;
+
 
     public static GameManager instance;
 
@@ -32,12 +38,17 @@ public class GameManager : MonoBehaviour
     private bool isGameStarted = false;
     private int enemiesSpawned = 0;
     private bool bossSpawned = false;
+    private int aliveEnemies = 0;   // ★ 今生きている雑魚
 
     void Awake()
     {
         instance = this;
         _gameoverPanel.SetActive(false);
         StartCoroutine(StartCountdown());
+
+        // ゲーム開始前にBGM停止
+        if (SoundManager.Instance != null)
+            SoundManager.Instance.StopBGM();
     }
 
     void Update()
@@ -50,6 +61,12 @@ public class GameManager : MonoBehaviour
         {
             if (enemiesSpawned < maxEnemies)
             {
+                // 雑魚敵出現時は雑魚BGM（ID 0）再生
+                if (SoundManager.Instance != null && !SoundManager.Instance.bgmSource.isPlaying)
+                {
+                    SoundManager.Instance.PlayBGM(0, true);
+                }
+
                 int spawnCount = Random.Range(spawnCountMin, spawnCountMax + 1);
 
                 for (int i = 0; i < spawnCount; i++)
@@ -60,10 +77,16 @@ public class GameManager : MonoBehaviour
                     enemiesSpawned++;
                 }
             }
-            else if (!bossSpawned)
+            else if (!bossSpawned && aliveEnemies <= 0)
             {
+                // ボス出現時はBGM ID 1
                 SpawnBoss();
                 bossSpawned = true;
+
+                if (SoundManager.Instance != null)
+                {
+                    SoundManager.Instance.PlayBGM(1, true);
+                }
             }
 
             timer = 0f;
@@ -73,6 +96,10 @@ public class GameManager : MonoBehaviour
         {
             _gameoverPanel.SetActive(true);
             Time.timeScale = 0f;
+
+            // ゲームオーバーでBGM停止
+            if (SoundManager.Instance != null)
+                SoundManager.Instance.StopBGM();
         }
     }
 
@@ -100,33 +127,21 @@ public class GameManager : MonoBehaviour
 
         float targetZ = player != null ? player.transform.position.z : 0f;
 
-        Vector3 bl = cam.ScreenToWorldPoint(
-            new Vector3(0, 0, cam.nearClipPlane)
-        );
-        Vector3 tr = cam.ScreenToWorldPoint(
-            new Vector3(Screen.width, Screen.height, cam.nearClipPlane)
-        );
+        float vx = Random.Range(spawnMinX, spawnMaxX);
+        float vy = Random.Range(spawnMinY, spawnMaxY);
 
-        // ★ 出現位置（xyランダム）
-        Vector3 spawnPos = new Vector3(
-            Random.Range(bl.x, tr.x),
-            Random.Range(bl.y, tr.y),
-            enemySpawnZ
-        );
-
-        // ★ 移動先もランダム
-        Vector3 targetPos = new Vector3(
-            Random.Range(bl.x, tr.x),
-            Random.Range(bl.y, tr.y),
-            targetZ
+        Vector3 spawnPos = cam.ViewportToWorldPoint(
+            new Vector3(vx, vy, enemySpawnZ)
         );
 
         GameObject enemy = Instantiate(enemyPrefab, spawnPos, Quaternion.identity);
 
+        aliveEnemies++;
+
         Enemy e = enemy.GetComponent<Enemy>();
         if (e != null)
         {
-            e.SetDirection(targetPos);
+            e.SetDirection(new Vector3(spawnPos.x, spawnPos.y, targetZ));
         }
     }
 
@@ -146,6 +161,10 @@ public class GameManager : MonoBehaviour
     {
         text.text = "CLEAR!";
         Time.timeScale = 0f;
+
+        // ゲームクリアでBGM停止
+        if (SoundManager.Instance != null)
+            SoundManager.Instance.StopBGM();
     }
 
     public void TextChange(string newText)
@@ -155,4 +174,10 @@ public class GameManager : MonoBehaviour
             text.text = newText;
         }
     }
+
+    public void OnEnemyDead()
+    {
+        aliveEnemies = Mathf.Max(0, aliveEnemies - 1);
+    }
+
 }

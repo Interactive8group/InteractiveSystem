@@ -3,9 +3,10 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     public float speed = 5f;
-    public float destroyZ = -6f; // ★ これを超えたら消す
+    public float destroyZ = -6f;
 
     private Vector3 direction;
+    private bool isDead = false; // ★ 二重死亡防止
 
     public void SetDirection(Vector3 targetPos)
     {
@@ -16,18 +17,43 @@ public class Enemy : MonoBehaviour
     {
         transform.position += direction * speed * Time.deltaTime;
 
-        // ★ プレイヤーを通り過ぎたら消える
+        // ★ 画面奥へ抜けたら消える
         if (transform.position.z <= destroyZ)
         {
-            Destroy(gameObject);
+            Die();
         }
     }
 
-    void OnCollisionEnter(Collision collision)
+    // ★ プレイヤー or 弾 に当たった
+    void OnTriggerEnter(Collider other)
     {
-        if (collision.gameObject.tag == "Player")
+        if (other.CompareTag("Player"))
         {
-            Destroy(gameObject);
+            Die();
+            PlayerHealth hp = other.GetComponent<PlayerHealth>();
+            if (hp != null)
+            {
+                hp.TakeDamage(1);
+            }
         }
+        else if (other.CompareTag("PlayerBullet"))
+        {
+            Destroy(other.gameObject); // 弾を消す
+            Die();
+        }
+    }
+
+    // ★ 消える処理はここに集約
+    void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        if (GameManager.instance != null)
+        {
+            GameManager.instance.OnEnemyDead();
+        }
+
+        Destroy(gameObject);
     }
 }

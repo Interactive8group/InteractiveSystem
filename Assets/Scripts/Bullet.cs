@@ -2,31 +2,36 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    public float speed = 5f;
-    private Vector3 target;
+    public float speed = 10f;
+    public float destroyZ = -6f; // ★ プレイヤーより少し手前
 
-    /// <summary>
-    /// 画面内のターゲット位置をセット（Zは弾と同じ）
-    /// </summary>
-    public void SetTarget(Vector3 targetPos)
+    private Vector3 direction;
+
+    public void SetDirection(Vector3 dir)
     {
-        // Zは現在の弾のZ座標を使う
-        target = new Vector3(targetPos.x, targetPos.y, transform.position.z);
+        direction = dir.normalized;
     }
 
     void Update()
     {
-        // ターゲット方向に移動（XYだけ）
-        Vector3 dir = (target - transform.position).normalized;
-        dir.z = 0f; // 念のためZ方向は動かさない
-        transform.position += dir * speed * Time.deltaTime;
+        transform.position += direction * speed * Time.deltaTime;
+
+        // ★ Zを取りすぎたら消す
+        if (transform.position.z <= destroyZ)
+        {
+            Destroy(gameObject);
+        }
     }
 
-    void OnCollisionEnter(Collision collision)
+    void OnTriggerEnter(Collider other)
     {
-        if (collision.gameObject.tag == "Player")
+        if (other.CompareTag("Player"))
         {
-            Debug.Log("被弾しました");
+            PlayerHealth hp = other.GetComponent<PlayerHealth>();
+            if (hp != null)
+            {
+                hp.TakeDamage(1);
+            }
             Destroy(gameObject);
         }
     }

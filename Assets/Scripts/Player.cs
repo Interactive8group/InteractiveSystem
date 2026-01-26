@@ -3,66 +3,80 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    [SerializeField] float speed = 0.01f;
-    [Header("オブジェクトの位置の微調整"), SerializeField] Vector3 pos_config;
-    [SerializeField] float moveLimit_up = 0, moveLimit_bottom = 0, moveLimit_left = 0, moveLimit_right = 0;
-    [SerializeField] GameObject fukidasi;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [Header("無敵設定")]
+    [SerializeField] float invincibleTime = 2f;
+    [SerializeField] float blinkInterval = 0.2f;
+
+    [Header("移動制御")]
+    [SerializeField] float followSpeed = 8f;
+    [SerializeField] Vector2 minMove = new Vector2(-8f, -4.5f);
+    [SerializeField] Vector2 maxMove = new Vector2(8f, 4.5f);
+
+    private bool isInvincible = false;
+    private Renderer playerRenderer;
+
     void Start()
     {
-
+        playerRenderer = GetComponent<Renderer>();
     }
 
     void Update()
     {
-        PlayerMove();
+        if (GameManager.instance.hart > 0)
+        {
+            PlayerMove();
+        }
     }
 
     void PlayerMove()
     {
-        // if (IntersectionManager.instance.hasIntersection)
-        // {
-        //     transform.position = (IntersectionManager.instance.intersectionPoint + pos_config) * speed;
-        // }
+        if (FacePointCollect.instance == null) return;
+        if (!FacePointCollect.instance.collectFinish) return;
 
-        if (FacePointCollect.instance != null && FacePointCollect.instance.collectFinish)
+        // ★ 0〜1 の顔座標
+        Vector2 face01 = FacePointCollect.instance.GetFaceCenter01();
+
+        float x = Mathf.Lerp(minMove.x, maxMove.x, face01.x);
+        float y = Mathf.Lerp(minMove.y, maxMove.y, face01.y);
+
+        Vector3 targetPos = new Vector3(x, y, transform.position.z);
+
+        transform.position = Vector3.Lerp(
+            transform.position,
+            targetPos,
+            followSpeed * Time.deltaTime
+        );
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (isInvincible) return;
+
+        if (other.CompareTag("Enemy") || other.CompareTag("EnemyBullet"))
         {
+            GameManager.instance.hart--;
+            StartCoroutine(BecomeInvincible());
 
-            transform.position = FacePointCollect.instance.GetFaceCenter();
-            //Debug.Log("transform.position←" + FacePointCollect.instance.GetFaceCenter());
+            if (other.CompareTag("EnemyBullet"))
+            {
+                Destroy(other.gameObject);
+            }
+        }
+    }
+
+    IEnumerator BecomeInvincible()
+    {
+        isInvincible = true;
+        float elapsed = 0f;
+
+        while (elapsed < invincibleTime)
+        {
+            playerRenderer.enabled = !playerRenderer.enabled;
+            yield return new WaitForSeconds(blinkInterval);
+            elapsed += blinkInterval;
         }
 
-        // // 現在の位置を取得
-        // Vector3 pos = transform.position;
-
-        // // Y方向を制限
-        // pos.y = Mathf.Clamp(pos.y, moveLimit_bottom, moveLimit_up);
-
-        // // X方向を制限
-        // pos.x = Mathf.Clamp(pos.x, moveLimit_left, moveLimit_right);
-
-        // // 修正した位置を再代入
-        // transform.position = pos;
-    }
-
-    void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.tag == "Bullet")
-        {
-            GameManager.instance.TextChange("いた～");
-            ViewFukidashi();
-        }
-    }
-
-    void ViewFukidashi()
-    {
-        fukidasi.SetActive(true);
-        StartCoroutine(HideAfter3Seconds(fukidasi));
-    }
-
-    IEnumerator HideAfter3Seconds(GameObject gameObject)
-    {
-        yield return new WaitForSeconds(3f);
-        gameObject.SetActive(false); // 非表示にする
+        playerRenderer.enabled = true;
+        isInvincible = false;
     }
 }
